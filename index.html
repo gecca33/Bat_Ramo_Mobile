@@ -2,7 +2,7 @@
 <html lang="bg">
 <head>
   <meta charset="UTF-8" />
-  <title>Бат Рамо - Мобилна Версия (Поправена)</title>
+  <title>Бат Рамо - Изцяло Мобилна Версия</title>
   <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.js"></script>
   <style>
     body, html {
@@ -15,12 +15,9 @@
 <body>
 <script>
 /*
- Поправен вариант, който:
- - Използва responsive (scale.mode = FIT)
- - Items се придвижват наляво със setVelocityX(-200), за да не "забиват"
- - Виртуални бутони са по-големи и позиционирани в долния ляв ъгъл
+  Играта е само с мобилни бутони (без клавиатура).
+  Предметите се движат НАВСЯКЪДЕ наляво със setVelocity.
 */
-
 const config = {
   type: Phaser.AUTO,
   width: 800,
@@ -45,14 +42,14 @@ const config = {
 
 const game = new Phaser.Game(config);
 
+// Основни променливи
 let bg;
 let batRamo;
 let bossFail, bossOk;
-let items;
+let items;         // група за храните/предметите
 let music;
 let reward;
 
-// Логика
 let calories = 0;
 let weight   = 70;
 let timeLeft = 50;
@@ -61,22 +58,20 @@ let gameOver = false;
 // HUD
 let timerText, weightText, infoText;
 
-// Виртуално управление
+// Мобилни бутони
 let buttonUp, buttonDown, buttonLeft, buttonRight;
 let moveUp=false, moveDown=false, moveLeft=false, moveRight=false;
 
-// Клавиатура за десктоп
-let cursors;
-
 function preload() {
-  // Ресурси
   this.load.image('background', 'background.png');
   this.load.image('bat_ramo', 'bat_ramo.png');
+
   this.load.image('burger', 'burger.png');
   this.load.image('pizza', 'pizza.png');
   this.load.image('donut', 'donut.png');
   this.load.image('barbell', 'barbell.png');
   this.load.image('treadmill', 'treadmill.png');
+
   this.load.image('boss_fail', 'boss_fail.png');
   this.load.image('boss_ok',   'boss_ok.png');
   this.load.image('reward', 'reward.png');
@@ -99,11 +94,13 @@ function create() {
   // Награда
   reward = this.add.sprite(900, 200, 'reward').setScale(0.2).setVisible(false);
 
-  // Група за предмети
+  // Група за предмети, без гравитация
   items = this.physics.add.group({ allowGravity: false });
+
+  // Сблъсък Бат Рамо и предмети
   this.physics.add.overlap(batRamo, items, collectItem, null, this);
 
-  // Текстове
+  // HUD
   timerText = this.add.text(10, 10, `Оставащо време: ${timeLeft}s`, { fontSize: '16px', fill: '#fff' });
   weightText = this.add.text(10, 30, `Тегло: ${weight} кг`, { fontSize: '16px', fill: '#fff' });
   infoText   = this.add.text(10, 50, '', { fontSize: '16px', fill: '#fff' });
@@ -114,7 +111,7 @@ function create() {
     callback: () => {
       if (!gameOver) {
         timeLeft--;
-        spawnItem.call(this);
+        spawnItem.call(this);  // създаваме предмет
       }
     },
     loop: true
@@ -122,14 +119,12 @@ function create() {
 
   // Музика
   music = this.sound.add('song', { loop: true, volume: 0.8 });
+  // Стартира музиката при първо докосване
   this.input.once('pointerdown', () => {
     music.play();
   });
 
-  // Клавиатура
-  cursors = this.input.keyboard.createCursorKeys();
-
-  // Виртуални бутони (по-големи, в долния ъгъл)
+  // --- Създаваме ВИРТУАЛНИ БУТОНИ (долния ляв ъгъл) ---
   buttonUp = this.add.text(60, 240, '▲', { fontSize: '50px', fill: '#fff' });
   buttonUp.setInteractive();
   buttonUp.on('pointerdown', () => { moveUp = true; });
@@ -158,39 +153,34 @@ function create() {
 function update() {
   if (gameOver) return;
 
-  // Нулираме скорост
+  // Винаги нулирам скоростта преди да отчетем бутони
   batRamo.setVelocity(0);
 
-  // Клавиатура (десктоп)
-  if (cursors.up.isDown)    { batRamo.setVelocityY(-200); }
-  if (cursors.down.isDown)  { batRamo.setVelocityY(200);  }
-  if (cursors.left.isDown)  { batRamo.setVelocityX(-200); }
-  if (cursors.right.isDown) { batRamo.setVelocityX(200);  }
-
-  // Виртуални бутони (телефон)
-  if (moveUp)    { batRamo.setVelocityY(-200); }
-  if (moveDown)  { batRamo.setVelocityY(200);  }
-  if (moveLeft)  { batRamo.setVelocityX(-200); }
-  if (moveRight) { batRamo.setVelocityX(200);  }
+  // Управление само през виртуални бутони
+  if (moveUp)    batRamo.setVelocityY(-200);
+  if (moveDown)  batRamo.setVelocityY(200);
+  if (moveLeft)  batRamo.setVelocityX(-200);
+  if (moveRight) batRamo.setVelocityX(200);
 
   // Обновяване на HUD
   timerText.setText(`Оставащо време: ${timeLeft}s`);
   weightText.setText(`Тегло: ${weight} кг`);
 
-  // Унищожаваме предметите, ако излязат от екрана
+  // Премахване на предмети, излезли от екрана (x < -50)
   items.children.each(item => {
     if (item.x < -50) {
       item.destroy();
     }
   });
 
-  // Победа?
+  // Успех
   if (weight >= 100) {
     gameOver = true;
     infoText.setText('Поздравления! Бат Рамо постигна целта!');
     showSuccessBoss.call(this);
   }
-  // Провал?
+
+  // Провал
   if (timeLeft <= 0 && !gameOver) {
     gameOver = true;
     infoText.setText('Неуспех! Здравословният бос идва...');
@@ -198,15 +188,21 @@ function update() {
   }
 }
 
+// Създаваме предмет (храна/пътека) и го движим наляво
 function spawnItem() {
   const itemTypes = ['burger', 'pizza', 'donut', 'barbell', 'treadmill'];
   const chosen = Phaser.Math.RND.pick(itemTypes);
 
+  // Създаваме го отдясно
   const item = items.create(820, Phaser.Math.Between(50, 350), chosen);
   item.setScale(0.2);
-  item.setVelocityX(-200);
+
+  // Задаваме velocity -> наляво (ъгъл=180, speed=200)
+  // Или директно: item.setVelocityX(-200);
+  this.physics.velocityFromAngle(180, 200, item.body.velocity);
 }
 
+// Събиране на предмет
 function collectItem(batRamo, item) {
   const type = item.texture.key;
   if (['burger', 'pizza', 'donut'].includes(type)) {
@@ -219,15 +215,18 @@ function collectItem(batRamo, item) {
   item.destroy();
 }
 
+// При успех
 function showSuccessBoss() {
   bossOk.setVisible(true);
 
+  // Босът влиза
   this.tweens.add({
     targets: bossOk,
     x: 600,
     duration: 2000,
     ease: 'Power2',
     onComplete: () => {
+      // Увеличаваме Бат Рамо
       this.tweens.add({
         targets: batRamo,
         scale: 0.3,
@@ -235,6 +234,7 @@ function showSuccessBoss() {
         ease: 'Power2'
       });
 
+      // Придвижваме Бат Рамо в центъра
       this.tweens.add({
         targets: batRamo,
         x: 400,
@@ -243,6 +243,7 @@ function showSuccessBoss() {
         delay: 1500,
         ease: 'Power2',
         onComplete: () => {
+          // Босът дава наградата
           reward.setPosition(bossOk.x, bossOk.y);
           reward.setVisible(true);
 
@@ -262,6 +263,7 @@ function showSuccessBoss() {
   });
 }
 
+// При провал
 function showFailBoss() {
   bossFail.setVisible(true);
 
@@ -272,6 +274,7 @@ function showFailBoss() {
     duration: 2000,
     ease: 'Power2',
     onComplete: () => {
+      // Хваща Бат Рамо
       batRamo.x = bossFail.x - 20;
       batRamo.y = bossFail.y;
 
@@ -281,6 +284,7 @@ function showFailBoss() {
         duration: 1000,
         ease: 'Power2',
         onComplete: () => {
+          // Хвърляме Бат Рамо
           this.tweens.add({
             targets: batRamo,
             x: 900,
@@ -292,6 +296,7 @@ function showFailBoss() {
               infoText.setText('Бат Рамо бе изхвърлен през прозореца!');
               batRamo.destroy();
 
+              // Балонче над боса
               const bossSpeech = this.add.text(
                 bossFail.x,
                 bossFail.y - 60,
